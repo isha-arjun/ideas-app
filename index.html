@@ -349,12 +349,12 @@ function ecoInferTaxonomy(item){
 }
 function ecoBuild(){
  const list=ideas.slice(),nodes=[],edges=[],industryMap=new Map(),skillMap=new Map();
- list.forEach((item,index)=>{const taxonomy=ecoInferTaxonomy(item),ideaNode={id:'idea:'+item.id,label:item.name||'Untitled',kind:'idea',item,taxonomy,x:Math.cos(index*2.4)*2.2,y:(index%3-1)*.42,z:Math.sin(index*2.4)*2.2};nodes.push(ideaNode);
+ list.forEach((item,index)=>{const taxonomy=ecoInferTaxonomy(item),ideaNode={id:'idea:'+item.id,label:item.name||'Untitled',kind:'idea',item,taxonomy,x:Math.cos(index*2.4)*3.2,y:(index%3-1)*.42,z:Math.sin(index*2.4)*3.2};nodes.push(ideaNode);
  taxonomy.industries.forEach(label=>{const key=ecoNorm(label);if(!industryMap.has(key))industryMap.set(key,{id:'industry:'+key,label,kind:'industry',members:[],x:0,y:0,z:0});industryMap.get(key).members.push(ideaNode)});
  taxonomy.skills.forEach(label=>{const key=ecoNorm(label);if(!skillMap.has(key))skillMap.set(key,{id:'skill:'+key,label,kind:'skill',members:[],x:0,y:0,z:0});skillMap.get(key).members.push(ideaNode)});
  });
  const place=(map,radius,phase)=>{let i=0;for(const node of map.values()){const a=2*Math.PI*i/Math.max(1,map.size)+phase;node.x=Math.cos(a)*radius;node.y=Math.sin(a*2)*.72;node.z=Math.sin(a)*radius;i++;nodes.push(node);node.members.forEach(member=>edges.push({a:member.id,b:node.id,kind:node.kind==='industry'?'industry':'skill'}))}};
- place(industryMap,4.2,0);place(skillMap,2.9,.5);
+ place(industryMap,6.2,0);place(skillMap,4.5,.5);
  list.forEach(item=>(item.connections||[]).forEach(id=>{if(list.some(x=>x.id===id)&&item.id!==id)edges.push({a:'idea:'+item.id,b:'idea:'+id,kind:'idea'})}));
  const unique=new Map();edges.forEach(edge=>unique.set([edge.a,edge.b,edge.kind].sort().join('|'),edge));return {nodes,edges:[...unique.values()],industryMap,skillMap};
 }
@@ -392,7 +392,7 @@ function renderEcosystem3D(){
  const visibleNodes=data.nodes.filter(n=>filter==='skill'?n.kind!=='industry':filter==='industry'?n.kind!=='skill':filter==='idea'?n.kind==='idea':n.kind!=='skill');
  const visibleIds=new Set(visibleNodes.map(n=>n.id));
  const relevant=data.edges.filter(e=>visibleIds.has(e.a)&&visibleIds.has(e.b)&&(filter==='all'?e.kind!=='skill':filter==='idea'?e.kind==='idea':e.kind===filter));
- const cx=w/2,cy=hgt/2,scale=Math.min(w/11,hgt/8)*ecoZoom;
+ const cx=w/2,cy=hgt/2,scale=Math.min(w/15,hgt/11)*ecoZoom;
  const project=n=>{let x=n.x*Math.cos(ecoRotationY)-n.z*Math.sin(ecoRotationY),z=n.x*Math.sin(ecoRotationY)+n.z*Math.cos(ecoRotationY),y=n.y*Math.cos(ecoRotationX)-z*Math.sin(ecoRotationX);z=n.y*Math.sin(ecoRotationX)+z*Math.cos(ecoRotationX);const perspective=7/(7+z*.16);return {x:cx+x*scale*perspective,y:cy+y*scale*perspective,z,depth:perspective}};
  const projected=visibleNodes.map(n=>({...n,p:project(n)}));const byId=new Map(projected.map(n=>[n.id,n]));
  ctx.clearRect(0,0,w,hgt);
