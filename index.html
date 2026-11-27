@@ -331,8 +331,8 @@ function ecoInferTaxonomy(item){
  ['Solution architecture',/\b(architecture|integration|enterprise|custom agent|business system|workflow)\b/i],
  ['Prompt engineering',/\b(prompt|llm|large language model|ai agent|chatbot|rag)\b/i],
  ['Learning experience design',/\b(education|student|learning|course|flashcard|study plan|lms|teacher)\b/i]];
- const unique=list=>[...new Map(list.map(x=>[ecoNorm(x),x])).values()],inferredIndustries=industryRules.filter(([,re])=>has(re)).map(([label])=>label),inferredSkills=skillRules.filter(([,re])=>has(re)).map(([label])=>label),industries=unique([...ecoTokens(item.industry||''),...inferredIndustries]);
- if(!industries.length&&item.category&&item.category!=='Other')industries.push(item.category);
+ const unique=list=>[...new Map(list.map(x=>[ecoNorm(x),x])).values()],inferredIndustries=industryRules.filter(([,re])=>has(re)).map(([label])=>label),inferredSkills=skillRules.filter(([,re])=>has(re)).map(([label])=>label),industries=unique([...ecoTokens(item.industry||'').filter(label=>label.trim().length>=5),...inferredIndustries]);
+ if(!industries.length&&item.category&&item.category!=='Other'&&String(item.category).trim().length>=5)industries.push(item.category);
  const recognizedSkills=new Set(skillRules.map(([label])=>ecoNorm(label)));const explicitSkills=ecoTokens(item.skills||'').filter(label=>recognizedSkills.has(ecoNorm(label)));return {industries,skills:unique([...explicitSkills,...inferredSkills]),inferredIndustries,inferredSkills};
 }
 function ecoBuild(){
