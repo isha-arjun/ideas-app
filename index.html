@@ -118,7 +118,7 @@ body{background:radial-gradient(ellipse at 15% -10%,#dcd8ff99,transparent 42%),r
 <div class="eco-legend"><span><i class="eco-dot eco-idea"></i>Business idea</span><span><i class="eco-dot eco-industry"></i>Industry</span><span><i class="eco-dot eco-skill"></i>Shared skill</span><span><i class="eco-line"></i>Relationship</span></div></div>
 <div class="layout eco-lower"><div class="panel"><div class="panelhead"><div><h2>Shared capability matrix</h2><div class="muted tiny">Skills appearing across multiple ventures</div></div></div><div class="tablewrap"><table class="table"><thead><tr><th>Capability</th><th>Used by</th><th>Connected ideas</th></tr></thead><tbody id="ecoSkillRows"></tbody></table></div></div><div class="panel"><div class="panelhead"><div><h2>Industry landscape</h2><div class="muted tiny">Where your ideas are concentrated</div></div></div><div id="ecoIndustryList" class="bars"></div></div></div>
 <div class="panel" style="margin-top:16px"><div class="panelhead"><div><h2>Strategic adjacency</h2><div class="muted tiny">Idea pairs with the strongest overlap in industry or skills</div></div></div><div id="ecoSynergyList" class="idea-grid"></div></div>
-<div class="note" style="margin-top:14px"><b>How to make this useful:</b> Add comma-separated industries and skills to each idea. Use consistent labels (for example, “AI”, “Education”, “Product design”, “Sales”) so shared capabilities are detected accurately. Connections are analytical suggestions, not proof that two markets or products are compatible.</div>
+<div class="note" style="margin-top:14px"><b>How to make this useful:</b> Industries and skills are inferred automatically from each idea’s name, description, problem, customers, solution, and notes. Add your own comma-separated tags in an idea profile to refine or correct the suggestions. Inferred matches are heuristics, so review them before making strategic decisions.</div>
 </section>
 <section class="page" id="page-notes"><div class="hgroup"><div><div class="eyebrow">Think on paper</div><h1>Founder Notes</h1><p class="sub">Capture observations, lessons, and strategic thoughts.</p></div></div><div class="panel"><div class="formfield"><label for="noteTitle">Note title</label><input class="field" id="noteTitle" placeholder="e.g. A customer problem I noticed"></div><div class="formfield" style="margin-top:12px"><label for="noteBody">Your note</label><textarea class="field" id="noteBody" rows="5" placeholder="Write freely. What did you learn? What should you investigate?"></textarea></div><div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn primary" onclick="saveNote()">Save note</button></div></div><div id="notesList" style="display:grid;gap:10px;margin-top:15px"></div></section>
 <section class="page" id="page-settings"><div class="hgroup"><div><div class="eyebrow">Your data, your control</div><h1>Settings & Data</h1><p class="sub">Manage your local vault and export a backup.</p></div></div><div class="layout"><div class="panel"><h2 style="font-size:15px">Workspace preferences</h2><p class="muted tiny">Active venture limit</p><div class="note">Maximum of <b>2 active ventures</b>. This is enforced when changing an idea's status.</div><p class="muted tiny" style="margin-top:18px">Storage mode</p><strong>Browser local storage</strong><p class="muted tiny">This prototype saves data in this browser on this device. It is not yet cloud-synced or shared across devices.</p></div><div class="panel"><h2 style="font-size:15px">Backup & restore</h2><p class="muted tiny">Export a JSON backup of your ideas and notes. Keep it somewhere safe.</p><button class="btn primary" onclick="exportData()">↓ Export backup</button><div style="margin-top:18px"><label class="btn" for="importFile">↑ Import backup</label><input class="hidden" id="importFile" type="file" accept="application/json" onchange="importData(event)"></div><div style="margin-top:20px;border-top:1px solid var(--line);padding-top:15px"><button class="btn" style="color:var(--red)" onclick="resetData()">Reset all local data</button><p class="muted tiny">This removes locally saved ideas and notes. Export first if you need a backup.</p></div></div></div></section>
@@ -166,21 +166,52 @@ host.querySelectorAll('.brain-node').forEach(el=>{const go=()=>openDetail(el.dat
 let ecoRotationY=-.35,ecoRotationX=.22,ecoZoom=1,ecoNodes=[],ecoHits=[],ecoDrag=null,ecoSelected=null,ecoFrame=0;
 function ecoTokens(value){return String(value||'').split(/[,;\\n]/).map(x=>x.trim()).filter(Boolean)}
 function ecoNorm(value){return value.toLocaleLowerCase().replace(/\\s+/g,' ').trim()}
+function ecoInferTaxonomy(item){
+ const source=[item.name,item.desc,item.problem,item.customer,item.solution,item.solutionText,item.market,item.competition,item.notes].filter(Boolean).join(' ').toLowerCase(),has=re=>re.test(source);
+ const industryRules=[
+ ['AI & Automation',/\b(ai|artificial intelligence|rag|retrieval[- ]augmented|llm|large language model|agentic|chatbot|machine learning)\b/i],
+ ['Software & Developer Tools',/\b(software|app|application|developer|api|extension|macos|operating system|desktop|database|compatibility|coding|programming)\b/i],
+ ['IT Compatibility & Device Management',/\b(compatibility|macos|macbook|device management|hardware profile|operating system)\b/i],
+ ['Education Technology',/\b(education|student|school|learning|lms|canvas|course|teacher|classroom|flashcard|study plan)\b/i],
+ ['Gaming & Interactive Entertainment',/\b(game|gaming|platformer|pixel[- ]art|level design|godot|steam|indie game|gameplay)\b/i],
+ ['Business Services & Consulting',/\b(agency|consult(?:ing|ancy)?|client|businesses|companies|enterprise|service|retainer|project fee|b2b)\b/i],
+ ['Productivity & Workflow',/\b(productivity|workflow|task management|project management|team collaboration|organizer|automation|knowledge management)\b/i],
+ ['Marketing & Analytics',/\b(marketing|seo|geo|analytics|growth|campaign|audience|conversion)\b/i],
+ ['Finance & Fintech',/\b(finance|payment|payments|banking|investment|investing|capital|fintech)\b/i],
+ ['E-commerce & Marketplaces',/\b(e-commerce|ecommerce|marketplace|online store|retail|shopping)\b/i]];
+ const skillRules=[
+ ['Software engineering',/\b(software|app|application|developer|api|extension|database|coding|programming|macos)\b/i],
+ ['AI / LLM integration',/\b(ai|artificial intelligence|rag|retrieval[- ]augmented|llm|large language model|agent|chatbot|machine learning)\b/i],
+ ['Data research & curation',/\b(database|catalog(?:ue)?|verified|compatibility|research|knowledge base|documentation|information)\b/i],
+ ['Quality assurance & testing',/\b(compatibility|testing|test|validation|quality assurance|bug|reliability)\b/i],
+ ['Product strategy & management',/\b(product|platform|users|customer|subscription|feature|roadmap|organize)\b/i],
+ ['UX / UI design',/\b(user experience|ux|ui|interface|design|dashboard|user-friendly)\b/i],
+ ['B2B sales & customer discovery',/\b(b2b|businesses|companies|enterprise|client|customer discovery|sales|agency|consult)\b/i],
+ ['Game design',/\b(game|gameplay|player|platformer|chapter|level|mechanic)\b/i],
+ ['Game programming',/\b(game|godot|gameplay|platformer|game engine)\b/i],
+ ['2D art & animation',/\b(pixel[- ]art|character design|sprite|animation|visual art|illustration)\b/i],
+ ['Level design',/\b(level design|levels|platformer|game world|gameplay)\b/i],
+ ['Narrative design & storytelling',/\b(story|narrative|chapter|character|worldbuilding|sci[- ]fi)\b/i],
+ ['Content marketing',/\b(marketing|content|audience|social media|campaign|promotion)\b/i],
+ ['SEO & growth analytics',/\b(seo|geo|analytics|search|traffic|conversion|growth)\b/i],
+ ['Knowledge architecture',/\b(knowledge base|internal knowledge|documents|retrieval|rag|information architecture)\b/i],
+ ['Solution architecture',/\b(architecture|integration|enterprise|custom agent|business system|workflow)\b/i],
+ ['Prompt engineering',/\b(prompt|llm|large language model|ai agent|chatbot|rag)\b/i],
+ ['Learning experience design',/\b(education|student|learning|course|flashcard|study plan|lms|teacher)\b/i]];
+ const unique=list=>[...new Map(list.map(x=>[ecoNorm(x),x])).values()],inferredIndustries=industryRules.filter(([,re])=>has(re)).map(([label])=>label),inferredSkills=skillRules.filter(([,re])=>has(re)).map(([label])=>label),industries=unique([...ecoTokens(item.industry||''),...inferredIndustries]);
+ if(!industries.length&&item.category&&item.category!=='Other')industries.push(item.category);
+ return {industries,skills:unique([...ecoTokens(item.skills||''),...inferredSkills]),inferredIndustries,inferredSkills};
+}
 function ecoBuild(){
  const list=ideas.slice(),nodes=[],edges=[],industryMap=new Map(),skillMap=new Map();
- list.forEach((item,index)=>{
-  const ideaNode={id:'idea:'+item.id,label:item.name||'Untitled',kind:'idea',item,x:Math.cos(index*2.4)*2.2,y:(index%3-1)*.42,z:Math.sin(index*2.4)*2.2};
-  nodes.push(ideaNode);
-  const industries=ecoTokens(item.industry||item.category||'Other');
-  const skills=ecoTokens(item.skills||'');
-  industries.forEach(label=>{const key=ecoNorm(label);if(!industryMap.has(key))industryMap.set(key,{id:'industry:'+key,label,kind:'industry',members:[],x:0,y:0,z:0});industryMap.get(key).members.push(ideaNode)});
-  skills.forEach(label=>{const key=ecoNorm(label);if(!skillMap.has(key))skillMap.set(key,{id:'skill:'+key,label,kind:'skill',members:[],x:0,y:0,z:0});skillMap.get(key).members.push(ideaNode)});
+ list.forEach((item,index)=>{const taxonomy=ecoInferTaxonomy(item),ideaNode={id:'idea:'+item.id,label:item.name||'Untitled',kind:'idea',item,taxonomy,x:Math.cos(index*2.4)*2.2,y:(index%3-1)*.42,z:Math.sin(index*2.4)*2.2};nodes.push(ideaNode);
+ taxonomy.industries.forEach(label=>{const key=ecoNorm(label);if(!industryMap.has(key))industryMap.set(key,{id:'industry:'+key,label,kind:'industry',members:[],x:0,y:0,z:0});industryMap.get(key).members.push(ideaNode)});
+ taxonomy.skills.forEach(label=>{const key=ecoNorm(label);if(!skillMap.has(key))skillMap.set(key,{id:'skill:'+key,label,kind:'skill',members:[],x:0,y:0,z:0});skillMap.get(key).members.push(ideaNode)});
  });
  const place=(map,radius,phase)=>{let i=0;for(const node of map.values()){const a=2*Math.PI*i/Math.max(1,map.size)+phase;node.x=Math.cos(a)*radius;node.y=Math.sin(a*2)*.72;node.z=Math.sin(a)*radius;i++;nodes.push(node);node.members.forEach(member=>edges.push({a:member.id,b:node.id,kind:node.kind==='industry'?'industry':'skill'}))}};
  place(industryMap,4.2,0);place(skillMap,2.9,.5);
  list.forEach(item=>(item.connections||[]).forEach(id=>{if(list.some(x=>x.id===id)&&item.id!==id)edges.push({a:'idea:'+item.id,b:'idea:'+id,kind:'idea'})}));
- const unique=new Map();edges.forEach(e=>unique.set([e.a,e.b,e.kind].sort().join('|'),e));
- return {nodes,edges:[...unique.values()],industryMap,skillMap};
+ const unique=new Map();edges.forEach(edge=>unique.set([edge.a,edge.b,edge.kind].sort().join('|'),edge));return {nodes,edges:[...unique.values()],industryMap,skillMap};
 }
 function renderEcosystem3D(){
  const canvas=document.getElementById('ecoCanvas');if(!canvas)return;
@@ -211,7 +242,7 @@ function renderEcosystem3D(){
  projected.sort((a,b)=>a.p.z-b.p.z).forEach(n=>{const r=(n.kind==='idea'?17:n.kind==='industry'?12:10)*n.p.depth;ctx.beginPath();ctx.arc(n.p.x,n.p.y,r,0,Math.PI*2);ctx.fillStyle=n.kind==='idea'?'#625bd5':n.kind==='industry'?'#4c91d8':'#9b70d8';ctx.shadowColor='rgba(66,67,140,.2)';ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.font=(n.kind==='idea'?'600 12px':'500 10px')+' Inter,system-ui,sans-serif';ctx.textAlign='center';ctx.fillStyle='#35385d';ctx.fillText(n.label.length>25?n.label.slice(0,23)+'…':n.label,n.p.x,n.p.y+r+14);ecoHits.push({x:n.p.x,y:n.p.y,r:r+8,node:n})});
  const empty=data.nodes.length===0||(!data.nodes.some(n=>n.kind==='idea'));
  document.getElementById('ecoEmpty').classList.toggle('hidden',!empty);
- const tip=document.getElementById('ecoTooltip');if(ecoSelected){const n=data.nodes.find(x=>x.id===ecoSelected);if(n){tip.innerHTML='<strong>'+esc(n.label)+'</strong>'+esc(n.kind==='idea'?(n.item.industry||n.item.category||'Business idea')+' · '+ecoTokens(n.item.skills).join(', '):n.kind==='skill'?'Shared capability · '+n.members.length+' ideas': 'Industry · '+n.members.length+' ideas');tip.classList.remove('hidden')}else tip.classList.add('hidden')}else tip.classList.add('hidden');
+ const tip=document.getElementById('ecoTooltip');if(ecoSelected){const n=data.nodes.find(x=>x.id===ecoSelected);if(n){tip.innerHTML='<strong>'+esc(n.label)+'</strong>'+esc(n.kind==='idea'?(n.taxonomy.industries.join(', ')||'Business idea')+' · '+(n.taxonomy.skills.join(', ')||'Skills not inferred'):n.kind==='skill'?'Shared capability · '+n.members.length+' ideas': 'Industry · '+n.members.length+' ideas');tip.classList.remove('hidden')}else tip.classList.add('hidden')}else tip.classList.add('hidden');
 }
 function resetEcosystemView(){ecoRotationY=-.35;ecoRotationX=.22;ecoZoom=1;ecoSelected=null;renderEcosystem3D()}
 function initEcosystem(){const canvas=document.getElementById('ecoCanvas');if(!canvas||canvas.dataset.ready)return;canvas.dataset.ready='1';canvas.addEventListener('pointerdown',e=>{ecoDrag={x:e.clientX,y:e.clientY,moved:false};canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(!ecoDrag)return;const dx=e.clientX-ecoDrag.x,dy=e.clientY-ecoDrag.y;if(Math.abs(dx)+Math.abs(dy)>2)ecoDrag.moved=true;ecoRotationY+=dx*.009;ecoRotationX=Math.max(-1.1,Math.min(1.1,ecoRotationX+dy*.007));ecoDrag.x=e.clientX;ecoDrag.y=e.clientY;renderEcosystem3D()});canvas.addEventListener('pointerup',e=>{if(ecoDrag&&!ecoDrag.moved){const rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;const hit=[...ecoHits].reverse().find(n=>Math.hypot(n.x-x,n.y-y)<n.r);if(hit){ecoSelected=hit.node.id;if(hit.node.kind==='idea')openDetail(hit.node.item.id);else renderEcosystem3D()}}ecoDrag=null});canvas.addEventListener('wheel',e=>{e.preventDefault();ecoZoom=Math.max(.55,Math.min(1.8,ecoZoom*(e.deltaY>0?.92:1.08)));renderEcosystem3D()},{passive:false});}
