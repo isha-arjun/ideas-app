@@ -23,7 +23,9 @@
 .eco-tooltip{position:absolute;left:14px;bottom:14px;max-width:min(360px,calc(100% - 28px));padding:12px 14px;background:#fff;border:1px solid #dfe1f3;border-radius:12px;box-shadow:0 12px 32px #30345b20;color:#343957;font-size:12px;pointer-events:none}
 .eco-tooltip strong{display:block;margin-bottom:3px}
 .eco-lower{margin-top:16px}
-.eco-profile-panel{margin:16px 0;padding:18px}.eco-intel-list{display:grid;gap:9px}.eco-intel-item{padding:10px 12px;border:1px solid #e5e6f3;background:#fbfbff;border-radius:10px}.eco-intel-item strong{display:block;font-size:12px;margin-bottom:4px}.eco-intel-item small{display:block;color:var(--muted);font-size:11px;line-height:1.45}.eco-chip{display:inline-block;margin:3px 4px 0 0;padding:3px 7px;border-radius:20px;background:#eeedff;color:#5148a7;font-size:10px}.eco-gap{border-left:3px solid #d9a04b}.eco-covered{border-left:3px solid #55a98b}.eco-profile-panel .formactions{margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.eco-profile-panel{margin:16px 0;padding:18px}
+.capability-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:8px}.capability-group{border:1px solid #e4e5f2;border-radius:11px;background:#fff;overflow:hidden}.capability-group.open{border-color:#a9a5e8}.capability-group-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 13px;border:0;background:#f8f8ff;color:#35385d;text-align:left;cursor:pointer}.capability-group-toggle span:first-child{display:grid;gap:3px}.capability-group-toggle strong{font-size:12px}.capability-group-toggle small{font-size:10px;color:var(--muted)}.capability-chevron{font-size:19px;color:#625bd5}.capability-subskills{display:grid;gap:1px;padding:7px 11px 10px}.capability-option{display:flex;align-items:center;gap:8px;padding:7px 2px;font-size:11px;color:#444663;cursor:pointer}.capability-option input{accent-color:#625bd5}
+.eco-intel-list{display:grid;gap:9px}.eco-intel-item{padding:10px 12px;border:1px solid #e5e6f3;background:#fbfbff;border-radius:10px}.eco-intel-item strong{display:block;font-size:12px;margin-bottom:4px}.eco-intel-item small{display:block;color:var(--muted);font-size:11px;line-height:1.45}.eco-chip{display:inline-block;margin:3px 4px 0 0;padding:3px 7px;border-radius:20px;background:#eeedff;color:#5148a7;font-size:10px}.eco-gap{border-left:3px solid #d9a04b}.eco-covered{border-left:3px solid #55a98b}.eco-profile-panel .formactions{margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 
 .eco-synergy{border:1px solid #e4e5f3;background:#fafaff;border-radius:12px;padding:13px}
 .eco-synergy{cursor:pointer;transition:border-color .15s,box-shadow .15s}.eco-synergy:hover{border-color:#aaa1ed;box-shadow:0 5px 18px #5146bd12}.eco-synergy p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-overflow:ellipsis}.eco-synergy.expanded p{-webkit-line-clamp:unset;display:block;overflow:visible}.eco-synergy:focus-visible{outline:3px solid #887be4;outline-offset:2px}.eco-synergy .expand-hint{display:block;margin-top:7px;font-size:10px;color:#777d9b}.carddesc{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;text-overflow:ellipsis;line-height:1.5;max-height:4.5em}
@@ -118,7 +120,7 @@ body{background:radial-gradient(ellipse at 15% -10%,#dcd8ff99,transparent 42%),r
 <div class="stats ecosystem-stats"><div class="stat"><div class="label">Industries represented</div><div class="num" id="ecoIndustryCount">0</div><div class="hint">Distinct sectors in your portfolio</div></div><div class="stat"><div class="label">Shared capabilities</div><div class="num" id="ecoSkillCount">0</div><div class="hint">Skills used by multiple ideas</div></div><div class="stat"><div class="label">Potential synergies</div><div class="num" id="ecoSynergyCount">0</div><div class="hint">Idea pairs with shared DNA</div></div><div class="stat"><div class="label">Portfolio clusters</div><div class="num" id="ecoClusterCount">0</div><div class="hint">Connected groups of opportunities</div></div></div>
 <div class="panel eco-profile-panel">
 <div class="panelhead"><div><h2>Founder capability profile</h2><div class="muted tiny">Only mark capabilities you can currently deliver with confidence. This keeps gap analysis honest.</div></div></div>
-<div class="formgrid"><div class="formfield full"><label for="founderCapabilities">Capabilities you can currently deliver</label><textarea class="field" id="founderCapabilities" rows="3" placeholder="e.g. Product strategy, frontend development, Python, AI prototyping, SEO"></textarea><div class="muted tiny">Comma-separated. Use the capability labels shown in the intelligence report where possible.</div></div><div class="formfield full"><label for="founderAssets">Reusable infrastructure and assets you already have</label><textarea class="field" id="founderAssets" rows="2" placeholder="e.g. authentication system, reusable database schema, payment integration, analytics dashboard"></textarea></div></div>
+<div class="formgrid"><div class="formfield full"><label for="founderCapabilities">Capabilities you can currently deliver</label><div class="capability-groups" id="founderCapabilityGroups"></div><div class="muted tiny">Choose a broad area to reveal its specific skills. Select only skills you can confidently deliver.</div></div><div class="formfield full"><label for="founderAssets">Reusable infrastructure and assets you already have</label><textarea class="field" id="founderAssets" rows="2" placeholder="e.g. authentication system, reusable database schema, payment integration, analytics dashboard"></textarea></div></div>
 <div class="formactions"><button class="btn primary" onclick="saveFounderProfile()">Save capability profile</button><span class="muted tiny" id="founderProfileStatus">Not assessed yet</span></div></div>
 <div class="panel ecosystem-panel"><div class="eco-toolbar"><div><b>Interactive 3D portfolio map</b><div class="muted tiny">Drag to orbit · scroll to zoom · select a node to inspect it</div></div><div class="eco-controls"><select class="field" id="ecoFilter" onchange="renderEcosystem3D()"><option value="all">All relationships</option><option value="industry">Industry overlaps</option><option value="skill">Shared skills</option><option value="idea">Idea links</option></select><button class="btn sm" onclick="resetEcosystemView()">Reset view</button></div></div>
 <div class="eco-stage" id="ecoStage"><canvas id="ecoCanvas" aria-label="Interactive three dimensional business ecosystem map"></canvas><div class="eco-empty hidden" id="ecoEmpty">Add industries and shared skills to your ideas to reveal your business ecosystem.</div><div class="eco-tooltip hidden" id="ecoTooltip"></div></div>
@@ -221,13 +223,33 @@ function ecoCapabilityAnalysis(items,profile){
  assetRules.forEach(([label,re])=>{const matchingAssets=(profile.assets||[]).filter(asset=>re.test(asset));const matchingIdeas=enriched.filter(row=>row.signals.infrastructure.includes(label)).map(row=>row.item);if(matchingAssets.length&&matchingIdeas.length)assetMatches.push({label,assets:matchingAssets,ideas:matchingIdeas})});
  return {enriched,reusable,pairs,gaps,capabilities,assets:reusableAssets,assetMatches,requiredCount:capabilityMap.size,coveredCount:[...capabilityMap.values()].filter(x=>capSet.has(ecoNorm(x.label))).length};
 }
+const founderSkillGroups=[
+ {id:'technology',title:'Technology & Engineering',skills:['Software engineering','AI / LLM integration','Quality assurance & testing','Solution architecture','Prompt engineering']},
+ {id:'data',title:'Data & Knowledge',skills:['Data research & curation','Knowledge architecture']},
+ {id:'product',title:'Product & Design',skills:['Product strategy & management','UX / UI design','Learning experience design']},
+ {id:'business',title:'Business & Growth',skills:['B2B sales & customer discovery','Content marketing','SEO & growth analytics']},
+ {id:'creative',title:'Game Development & Creative',skills:['Game design','Game programming','2D art & animation','Level design','Narrative design & storytelling']}
+];
+let expandedCapabilityGroup=null;
+function toggleCapabilityGroup(id){expandedCapabilityGroup=expandedCapabilityGroup===id?null:id;renderFounderCapabilityGroups()}
+function renderFounderCapabilityGroups(){
+ const host=document.getElementById('founderCapabilityGroups');if(!host)return;
+ const selected=new Set((founderProfile.capabilities||[]).map(ecoNorm));
+ host.innerHTML=founderSkillGroups.map(group=>{const open=expandedCapabilityGroup===group.id;const count=group.skills.filter(s=>selected.has(ecoNorm(s))).length;return '<section class="capability-group '+(open?'open':'')+'"><button type="button" class="capability-group-toggle" aria-expanded="'+open+'" onclick="toggleCapabilityGroup(\''+group.id+'\')"><span><strong>'+group.title+'</strong><small>'+count+' of '+group.skills.length+' selected</small></span><span class="capability-chevron">'+(open?'−':'+')+'</span></button>'+(open?'<div class="capability-subskills">'+group.skills.map(skill=>'<label class="capability-option"><input type="checkbox" value="'+esc(skill)+'" '+(selected.has(ecoNorm(skill))?'checked':'')+' onchange="updateFounderCapability(\''+esc(skill)+'\',this.checked)"><span>'+skill+'</span></label>').join('')+'</div>':'')+'</section>'}).join('');
+}
+function updateFounderCapability(skill,checked){
+ const values=new Map((founderProfile.capabilities||[]).map(s=>[ecoNorm(s),ecoCanonicalSkill(s)]));
+ if(checked)values.set(ecoNorm(skill),skill);else values.delete(ecoNorm(skill));
+ founderProfile.capabilities=[...values.values()];renderFounderCapabilityGroups();
+}
 function saveFounderProfile(){
- founderProfile={capabilities:ecoTokens(document.getElementById('founderCapabilities').value).map(ecoCanonicalSkill),assets:ecoTokens(document.getElementById('founderAssets').value)};
+ const assets=document.getElementById('founderAssets');
+ founderProfile={capabilities:(founderProfile.capabilities||[]).map(ecoCanonicalSkill),assets:ecoTokens(assets.value)};
  persist();renderCapabilityIntelligence();toast('Founder capability profile saved');
 }
 function renderCapabilityIntelligence(){
- const cap=document.getElementById('founderCapabilities'),assets=document.getElementById('founderAssets');if(!cap||!assets)return;
- if(document.activeElement!==cap)cap.value=(founderProfile.capabilities||[]).join(', ');
+ const assets=document.getElementById('founderAssets');if(!assets)return;
+ renderFounderCapabilityGroups();
  if(document.activeElement!==assets)assets.value=(founderProfile.assets||[]).join(', ');
  const status=document.getElementById('founderProfileStatus');
  status.textContent=founderProfile.capabilities?.length?'Profile assessed · '+founderProfile.capabilities.length+' capabilities':'Not assessed — add capabilities you can confidently deliver';
