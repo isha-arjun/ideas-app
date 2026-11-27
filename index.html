@@ -333,7 +333,7 @@ function ecoInferTaxonomy(item){
  ['Learning experience design',/\b(education|student|learning|course|flashcard|study plan|lms|teacher)\b/i]];
  const unique=list=>[...new Map(list.map(x=>[ecoNorm(x),x])).values()],inferredIndustries=industryRules.filter(([,re])=>has(re)).map(([label])=>label),inferredSkills=skillRules.filter(([,re])=>has(re)).map(([label])=>label),industries=unique([...ecoTokens(item.industry||''),...inferredIndustries]);
  if(!industries.length&&item.category&&item.category!=='Other')industries.push(item.category);
- return {industries,skills:unique([...ecoTokens(item.skills||''),...inferredSkills]),inferredIndustries,inferredSkills};
+ const recognizedSkills=new Set(skillRules.map(([label])=>ecoNorm(label)));const explicitSkills=ecoTokens(item.skills||'').filter(label=>recognizedSkills.has(ecoNorm(label)));return {industries,skills:unique([...explicitSkills,...inferredSkills]),inferredIndustries,inferredSkills};
 }
 function ecoBuild(){
  const list=ideas.slice(),nodes=[],edges=[],industryMap=new Map(),skillMap=new Map();
