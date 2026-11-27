@@ -190,7 +190,7 @@ function ecoCapabilityAnalysis(items,profile){
  const capabilities=(profile.capabilities||[]).map(ecoCanonicalSkill),capSet=new Set(capabilities.map(ecoNorm)),assetSet=new Set((profile.assets||[]).map(ecoNorm));
  const enriched=items.map(item=>{const taxonomy=ecoInferTaxonomy(item),signals=ecoSignals(item),required=[...new Map(taxonomy.skills.map(s=>[ecoNorm(ecoCanonicalSkill(s)),ecoCanonicalSkill(s)])).values()],gaps=required.filter(s=>!capSet.has(ecoNorm(s)));return {item,required,gaps,signals}});
  const capabilityMap=new Map();enriched.forEach(row=>row.required.forEach(skill=>{const key=ecoNorm(skill);if(!capabilityMap.has(key))capabilityMap.set(key,{label:skill,items:[]});capabilityMap.get(key).items.push(row.item)}));
- const reusable=[...capabilityMap.values()].filter(x=>x.items.length>1).sort((a,b)=>b.items.length-a.items.length);
+ const reusable=[...capabilityMap.values()].filter(x=>x.items.length>1).map(x=>({...x,owned:capSet.has(ecoNorm(x.label))})).sort((a,b)=>b.items.length-a.items.length);
  const pairs=[];
  for(let i=0;i<enriched.length;i++)for(let j=i+1;j<enriched.length;j++){
   const a=enriched[i],b=enriched[j],intersect=(x,y)=>x.filter(v=>y.includes(v));
@@ -203,7 +203,23 @@ function ecoCapabilityAnalysis(items,profile){
  pairs.sort((a,b)=>b.score-a.score);
  const gaps=enriched.map(row=>({...row,gaps:row.gaps})).filter(row=>row.gaps.length);
  const reusableAssets=[...assetSet];
- return {enriched,reusable,pairs,gaps,capabilities,assets:reusableAssets,requiredCount:capabilityMap.size,coveredCount:[...capabilityMap.values()].filter(x=>capSet.has(ecoNorm(x.label))).length};
+ const assetMatches=[];
+ const assetRules=[
+ ['Shared database / data layer',/database|postgres|supabase|neon|sql|data store/i],
+ ['Authentication and user accounts',/auth|login|identity|user account|clerk/i],
+ ['AI / RAG foundation',/rag|llm|embedding|vector|ai agent|model/i],
+ ['Search and discovery',/search|algolia|meilisearch/i],
+ ['Payments and subscriptions',/payment|billing|stripe|razorpay|checkout/i],
+ ['Analytics and monitoring',/analytics|monitoring|posthog|plausible|metrics/i],
+ ['Admin dashboard',/admin|dashboard|control panel|console/i],
+ ['Browser extension layer',/browser extension|chrome extension/i],
+ ['Notifications and alerts',/notification|email|alert|reminder/i],
+ ['Document ingestion and processing',/document|pdf|file processing|ingestion/i],
+ ['API and integration layer',/api|webhook|integration|connector|sync/i],
+ ['Compatibility / rules engine',/compatibility|rules engine|device profile/i]
+ ];
+ assetRules.forEach(([label,re])=>{const matchingAssets=(profile.assets||[]).filter(asset=>re.test(asset));const matchingIdeas=enriched.filter(row=>row.signals.infrastructure.includes(label)).map(row=>row.item);if(matchingAssets.length&&matchingIdeas.length)assetMatches.push({label,assets:matchingAssets,ideas:matchingIdeas})});
+ return {enriched,reusable,pairs,gaps,capabilities,assets:reusableAssets,assetMatches,requiredCount:capabilityMap.size,coveredCount:[...capabilityMap.values()].filter(x=>capSet.has(ecoNorm(x.label))).length};
 }
 function saveFounderProfile(){
  founderProfile={capabilities:ecoTokens(document.getElementById('founderCapabilities').value).map(ecoCanonicalSkill),assets:ecoTokens(document.getElementById('founderAssets').value)};
@@ -217,13 +233,15 @@ function renderCapabilityIntelligence(){
  status.textContent=founderProfile.capabilities?.length?'Profile assessed · '+founderProfile.capabilities.length+' capabilities':'Not assessed — add capabilities you can confidently deliver';
  const report=ecoCapabilityAnalysis(ideas,founderProfile);
  const reusable=document.getElementById('ecoReusableCapabilities');
- reusable.innerHTML=report.reusable.map(x=>'<div class="eco-intel-item eco-covered"><strong>'+esc(x.label)+'</strong><small>Required by '+x.items.length+' ideas: '+esc(x.items.map(i=>i.name).join(', '))+'</small></div>').join('')||'<div class="muted tiny">No shared skills detected yet. Add requirements to multiple ideas to reveal reusable capabilities.</div>';
+ reusable.innerHTML=report.reusable.map(x=>'<div class="eco-intel-item '+(x.owned?'eco-covered':'')+'"><strong>'+esc(x.label)+(x.owned?' · In your capability profile':' · Not yet confirmed')+'</strong><small>Required by '+x.items.length+' ideas: '+esc(x.items.map(i=>i.name).join(', '))+(x.owned?' · Potentially reusable strength':' · Shared requirement, but not yet marked as a capability you can deliver')+'</small></div>').join('')||'<div class="muted tiny">No shared skills detected yet. Add requirements to multiple ideas to reveal reusable capabilities.</div>';
  const gaps=document.getElementById('ecoCapabilityGaps');
  if(!report.capabilities.length)gaps.innerHTML='<div class="eco-intel-item"><strong>Founder profile not assessed</strong><small>Add the capabilities you can confidently deliver above. The system will then distinguish confirmed strengths from gaps instead of assuming you know a skill because an idea requires it.</small></div>';
  else gaps.innerHTML=report.gaps.map(row=>'<div class="eco-intel-item eco-gap"><strong>'+esc(row.item.name)+'</strong><small>Capabilities to build, learn, hire for, or partner for: '+esc(row.gaps.join(', '))+'</small></div>').join('')||'<div class="eco-intel-item eco-covered"><strong>No identified capability gaps</strong><small>Your confirmed capability profile covers the currently inferred requirements. Review the requirements for completeness.</small></div>';
  const infrastructure=document.getElementById('ecoInfrastructure');
  const infraPairs=report.pairs.filter(p=>p.infrastructure.length||p.skills.length);
- infrastructure.innerHTML=infraPairs.map(p=>'<div class="eco-intel-item"><strong>'+esc(p.a.name)+' ↔ '+esc(p.b.name)+'</strong><small>Potential shared systems: '+esc(p.infrastructure.join(', ')||'No obvious shared infrastructure')+(p.skills.length?' · Shared capabilities: '+esc(p.skills.join(', ')):'')+'</small></div>').join('')||'<div class="muted tiny">No shared infrastructure signals found yet. Describe the technical components in each idea’s solution.</div>';
+ const pairHtml=infraPairs.map(p=>'<div class="eco-intel-item"><strong>'+esc(p.a.name)+' ↔ '+esc(p.b.name)+'</strong><small>Potential shared systems: '+esc(p.infrastructure.join(', ')||'No obvious shared infrastructure')+(p.skills.length?' · Shared capabilities: '+esc(p.skills.join(', ')):'')+'</small></div>').join('');
+ const assetHtml=report.assetMatches.map(x=>'<div class="eco-intel-item eco-covered"><strong>Reuse '+esc(x.label)+'</strong><small>Existing asset(s): '+esc(x.assets.join(', '))+' · Could support: '+esc(x.ideas.map(i=>i.name).join(', '))+'</small></div>').join('');
+ infrastructure.innerHTML=(assetHtml?'<div class="muted tiny" style="margin-bottom:7px">Existing assets that may transfer into these projects</div>'+assetHtml:'')+(pairHtml?'<div class="muted tiny" style="margin:12px 0 7px">Potential shared architecture between ideas</div>'+pairHtml:'')||'<div class="muted tiny">No shared infrastructure signals found yet. Describe the technical components in each idea’s solution and list reusable assets above.</div>';
  const customers=document.getElementById('ecoCustomers');
  const customerPairs=report.pairs.filter(p=>p.customers.length);
  customers.innerHTML=customerPairs.map(p=>'<div class="eco-intel-item"><strong>'+esc(p.a.name)+' ↔ '+esc(p.b.name)+'</strong><small>Potential shared customer groups: '+esc(p.customers.join(', '))+'</small></div>').join('')||'<div class="muted tiny">No customer overlap detected. Add specific target customer descriptions to each idea.</div>';
